@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upload Chest X-ray</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f0f0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+      }
+      .container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        width: 800px;
+        height: 500px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      .heading {
+        font-size: 24px;
+        margin-bottom: 20px;
+      }
+      .drop-zone {
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        padding: 0px;
+        cursor: pointer;
+        margin-bottom: 10px;
+        background-color: #fafafa;
+        position: relative;
+        width: 100%;
+        height: 80%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+      .drop-zone.hover {
+        border-color: #333;
+      }
+      .drop-zone p {
+        margin: 0;
+        font-size: 16px;
+        color: #666;
+      }
+      .drop-zone img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        display: block;
+      }
+      input[type="file"] {
+        display: none;
+      }
+      button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 10px 20px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      #result {
+        margin-top: 20px;
+        padding: 10px;
+        border-radius: 4px;
+        font-size: 16px;
+        font-weight: bold;
+        word-wrap: break-word;
+        color: white;
+        background-color: #e9ecef;
+      }
+      #result.detected {
+        background-color: #ff4d4d; /* Red for detected */
+      }
+      #result.not-detected {
+        background-color: #4caf50; /* Green for not detected */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="heading">
+        Predicting Tuberculosis (TB) from Chest X-ray Images
+      </div>
+      <div class="drop-zone" id="drop-zone">
+        <p id="placeholder-text">
+          <bold>Drag & Drop your image here + Click to select</bold>
+        </p>
+        <input type="file" name="file" id="file-input" accept="image/*" />
+        <img
+          id="image-preview"
+          src=""
+          alt="Image Preview"
+          style="display: none"
+        />
+      </div>
+      <button id="upload-button">Predict</button>
+      <div id="result"></div>
+    </div>
+
+    <script>
+      const dropZone = document.getElementById("drop-zone");
+      const fileInput = document.getElementById("file-input");
+      const uploadButton = document.getElementById("upload-button");
+      const resultDiv = document.getElementById("result");
+      const imagePreview = document.getElementById("image-preview");
+      const placeholderText = document.getElementById("placeholder-text");
+      let fileToUpload = null;
+
+      dropZone.addEventListener("click", () => fileInput.click());
+
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("hover");
+      });
+
+      dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("hover");
+      });
+
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("hover");
+        fileToUpload = e.dataTransfer.files[0];
+        fileInput.files = e.dataTransfer.files;
+        displayImage(fileToUpload);
+      });
+
+      fileInput.addEventListener("change", () => {
+        fileToUpload = fileInput.files[0];
+        displayImage(fileToUpload);
+      });
+
+      function displayImage(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          imagePreview.src = e.target.result;
+          imagePreview.style.display = "block";
+          placeholderText.style.display = "none"; // Hide the placeholder text
+        };
+        reader.readAsDataURL(file);
+      }
+
+      uploadButton.addEventListener("click", async () => {
+        if (!fileToUpload) {
+          resultDiv.innerText = "Please select or drag and drop an image file.";
+          resultDiv.className = "result";
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", fileToUpload);
+
+        const response = await fetch("/predict", {
+          method: "POST",
+          body: formData,
+        });
+        const result = await response.json();
+        resultDiv.className = "result"; // Reset class
+        if (result.prediction === "yes") {
+          resultDiv.classList.add("detected");
+          resultDiv.innerText = "Tuberculosis is detected";
+        } else {
+          resultDiv.classList.add("not-detected");
+          resultDiv.innerText = "No Tuberculosis detected";
+        }
+      });
+    </script>
+  </body>
+</html>
